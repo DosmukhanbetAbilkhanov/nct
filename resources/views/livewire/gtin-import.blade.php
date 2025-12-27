@@ -4,6 +4,7 @@
     <div class="mb-8 text-center">
         <h1 class="text-3xl font-bold text-gray-900">GTIN Import</h1>
         <p class="mt-2 text-gray-600">Upload an Excel or CSV file containing GTINs to import products from the National Catalog</p>
+        <p class="mt-1 text-sm text-gray-500">GTINs should be 13-digit numeric codes in column A</p>
     </div>
 
     @if (session()->has('success'))
@@ -31,6 +32,18 @@
     @if (!$currentBatch)
         {{-- File Upload Section --}}
         <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900">Upload File</h2>
+                <a href="{{ asset('templates/gtin-import-template.csv') }}"
+                   download="gtin-import-template.csv"
+                   class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Download Template
+                </a>
+            </div>
+
             <form wire:submit="upload">
                 <div x-data="{
                     dragover: false,

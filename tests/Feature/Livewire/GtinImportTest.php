@@ -281,3 +281,9 @@ test('component is accessible via root route', function () {
     $response->assertStatus(200)
         ->assertSeeLivewire(GtinImport::class);
 });
+
+test('component displays download template link', function () {
+    Livewire::test(GtinImport::class)
+        ->assertSee('Download Template')
+        ->assertSee('Upload File');
+});
