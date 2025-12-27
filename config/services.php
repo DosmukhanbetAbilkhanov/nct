@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'national_catalog' => [
+        'api_key' => env('NATIONAL_CATALOG_API_KEY'),
+        'base_url' => env('NATIONAL_CATALOG_BASE_URL', 'https://nationalcatalog.kz/gwp'),
+        'timeout' => 30,
+        'retry_times' => 3,
+    ],
+
 ];
