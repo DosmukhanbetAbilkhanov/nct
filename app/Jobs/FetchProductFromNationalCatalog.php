@@ -2,10 +2,11 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\ApiException;
+use App\Exceptions\ProductNotFoundException;
+use App\Exceptions\RateLimitException;
 use App\Models\ImportBatchItem;
 use App\Models\Product;
-use App\Services\NationalCatalogApiException;
-use App\Services\NationalCatalogRateLimitException;
 use App\Services\NationalCatalogService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -91,16 +92,6 @@ class FetchProductFromNationalCatalog implements ShouldQueue
             // Product doesn't exist, fetch from National Catalog API
             $productData = $service->fetchProductByGtin($normalizedGtin);
 
-            if ($productData === null) {
-                // Product not found in API
-                Log::warning('Product not found in National Catalog', ['gtin' => $normalizedGtin]);
-
-                $this->batchItem->markAsFailed('Product not found in National Catalog');
-                $this->batchItem->batch->incrementProcessed(success: false);
-
-                return;
-            }
-
             // Save product to database
             DB::transaction(function () use ($productData, $normalizedGtin) {
                 $product = Product::create([
@@ -126,37 +117,55 @@ class FetchProductFromNationalCatalog implements ShouldQueue
                 $this->batchItem->batch->incrementProcessed(success: true);
             });
 
-        } catch (NationalCatalogRateLimitException $e) {
+        } catch (ProductNotFoundException $e) {
+            // Product not found in API - mark as failed (non-retryable)
+            Log::warning('Product not found in National Catalog', [
+                'gtin' => $gtin,
+                'batch_item_id' => $this->batchItem->id,
+            ]);
+
+            DB::transaction(function () use ($e) {
+                $this->batchItem->markAsFailed($e->getMessage());
+                $this->batchItem->batch->incrementProcessed(success: false);
+            });
+
+        } catch (RateLimitException $e) {
             // Rate limit hit - release job back to queue
             Log::warning('Rate limit exceeded, releasing job back to queue', [
                 'gtin' => $gtin,
                 'batch_item_id' => $this->batchItem->id,
+                'retry_after' => $e->retryAfter,
             ]);
 
-            // Release back to queue after 60 seconds
-            $this->release(60);
+            // Release back to queue with delay from API response
+            $this->release($e->retryAfter);
 
-        } catch (NationalCatalogApiException $e) {
+        } catch (ApiException $e) {
             // API error - log and mark as failed
             Log::error('National Catalog API error', [
                 'gtin' => $gtin,
                 'batch_item_id' => $this->batchItem->id,
+                'status_code' => $e->statusCode,
                 'error' => $e->getMessage(),
             ]);
 
-            $this->batchItem->markAsFailed("API error: {$e->getMessage()}");
-            $this->batchItem->batch->incrementProcessed(success: false);
+            DB::transaction(function () use ($e) {
+                $this->batchItem->markAsFailed("API error: {$e->getMessage()}");
+                $this->batchItem->batch->incrementProcessed(success: false);
+            });
 
         } catch (\InvalidArgumentException $e) {
-            // Validation error - mark as failed
+            // Validation error - mark as failed (non-retryable)
             Log::error('GTIN validation error', [
                 'gtin' => $gtin,
                 'batch_item_id' => $this->batchItem->id,
                 'error' => $e->getMessage(),
             ]);
 
-            $this->batchItem->markAsFailed($e->getMessage());
-            $this->batchItem->batch->incrementProcessed(success: false);
+            DB::transaction(function () use ($e) {
+                $this->batchItem->markAsFailed($e->getMessage());
+                $this->batchItem->batch->incrementProcessed(success: false);
+            });
 
         } catch (\Exception $e) {
             // Unexpected error - log and rethrow to trigger retry
@@ -172,7 +181,7 @@ class FetchProductFromNationalCatalog implements ShouldQueue
     }
 
     /**
-     * Handle a job failure.
+     * Handle a job failure after all retry attempts.
      */
     public function failed(?Throwable $exception): void
     {
@@ -181,14 +190,17 @@ class FetchProductFromNationalCatalog implements ShouldQueue
             'batch_item_id' => $this->batchItem->id,
             'batch_id' => $this->batchItem->import_batch_id,
             'exception' => $exception?->getMessage(),
+            'exception_type' => $exception ? get_class($exception) : null,
         ]);
 
-        // Mark as failed with exception message
+        // Mark as failed with exception message (atomic transaction)
         $errorMessage = $exception
             ? "Job failed after all retries: {$exception->getMessage()}"
             : 'Job failed after all retries';
 
-        $this->batchItem->markAsFailed($errorMessage);
-        $this->batchItem->batch->incrementProcessed(success: false);
+        DB::transaction(function () use ($errorMessage) {
+            $this->batchItem->markAsFailed($errorMessage);
+            $this->batchItem->batch->incrementProcessed(success: false);
+        });
     }
 }

@@ -1,7 +1,8 @@
 <?php
 
-use App\Services\NationalCatalogApiException;
-use App\Services\NationalCatalogRateLimitException;
+use App\Exceptions\ApiException;
+use App\Exceptions\ProductNotFoundException;
+use App\Exceptions\RateLimitException;
 use App\Services\NationalCatalogService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -39,39 +40,39 @@ test('fetchProductByGtin returns product data on successful response', function 
     });
 });
 
-test('fetchProductByGtin returns null when API returns empty array', function () {
+test('fetchProductByGtin throws ProductNotFoundException when API returns empty array', function () {
     $gtin = '1234567890123';
 
     Http::fake([
         '*/portal/api/v2/products/*' => Http::response([], 200),
     ]);
 
-    $result = $this->service->fetchProductByGtin($gtin);
-
-    expect($result)->toBeNull();
+    expect(fn () => $this->service->fetchProductByGtin($gtin))
+        ->toThrow(ProductNotFoundException::class);
 });
 
-test('fetchProductByGtin returns null on 404 response', function () {
+test('fetchProductByGtin throws ProductNotFoundException on 404 response', function () {
     $gtin = '1234567890123';
 
     Http::fake([
         '*/portal/api/v2/products/*' => Http::response(null, 404),
     ]);
 
-    $result = $this->service->fetchProductByGtin($gtin);
-
-    expect($result)->toBeNull();
+    expect(fn () => $this->service->fetchProductByGtin($gtin))
+        ->toThrow(ProductNotFoundException::class);
 });
 
 test('fetchProductByGtin throws RateLimitException on 429 response', function () {
     $gtin = '1234567890123';
 
     Http::fake([
-        '*/portal/api/v2/products/*' => Http::response('Rate limit exceeded', 429),
+        '*/portal/api/v2/products/*' => Http::response('Rate limit exceeded', 429, [
+            'Retry-After' => '60',
+        ]),
     ]);
 
     expect(fn () => $this->service->fetchProductByGtin($gtin))
-        ->toThrow(NationalCatalogRateLimitException::class, 'Rate limit exceeded for National Catalog API');
+        ->toThrow(RateLimitException::class);
 });
 
 test('fetchProductByGtin throws ApiException on 500 response', function () {
@@ -82,7 +83,7 @@ test('fetchProductByGtin throws ApiException on 500 response', function () {
     ]);
 
     expect(fn () => $this->service->fetchProductByGtin($gtin))
-        ->toThrow(NationalCatalogApiException::class);
+        ->toThrow(ApiException::class);
 });
 
 test('fetchProductByGtin throws ApiException on other error responses', function () {
@@ -93,7 +94,7 @@ test('fetchProductByGtin throws ApiException on other error responses', function
     ]);
 
     expect(fn () => $this->service->fetchProductByGtin($gtin))
-        ->toThrow(NationalCatalogApiException::class);
+        ->toThrow(ApiException::class);
 });
 
 test('fetchProductByGtin logs successful requests', function () {
@@ -129,7 +130,8 @@ test('fetchProductByGtin logs not found responses', function () {
         '*/portal/api/v2/products/*' => Http::response([], 200),
     ]);
 
-    $this->service->fetchProductByGtin($gtin);
+    expect(fn () => $this->service->fetchProductByGtin($gtin))
+        ->toThrow(ProductNotFoundException::class);
 });
 
 test('fromConfig creates service instance with config values', function () {

@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Exceptions\ApiException;
+use App\Exceptions\ProductNotFoundException;
+use App\Exceptions\RateLimitException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
@@ -34,12 +37,12 @@ class NationalCatalogService
 
     /**
      * Fetch product data by GTIN from National Catalog API.
-     * Returns product data array on success, null if not found.
      *
-     * @throws NationalCatalogApiException
-     * @throws NationalCatalogRateLimitException
+     * @throws ProductNotFoundException If product not found (404 or empty response)
+     * @throws RateLimitException If rate limit exceeded (429)
+     * @throws ApiException For other API errors
      */
-    public function fetchProductByGtin(string $gtin): ?array
+    public function fetchProductByGtin(string $gtin): array
     {
         Log::info('National Catalog API: Fetching product', ['gtin' => $gtin]);
 
@@ -64,8 +67,7 @@ class NationalCatalogService
                 // API returns empty array when product not found
                 if (empty($data)) {
                     Log::warning('National Catalog API: Product not found (empty response)', ['gtin' => $gtin]);
-
-                    return null;
+                    throw new ProductNotFoundException($gtin);
                 }
 
                 Log::info('National Catalog API: Product found', ['gtin' => $gtin]);
@@ -75,15 +77,16 @@ class NationalCatalogService
 
             if ($response->status() === 404) {
                 Log::warning('National Catalog API: Product not found', ['gtin' => $gtin]);
-
-                return null;
+                throw new ProductNotFoundException($gtin);
             }
 
             if ($response->status() === 429) {
-                Log::error('National Catalog API: Rate limit exceeded', ['gtin' => $gtin]);
-                throw new NationalCatalogRateLimitException(
-                    'Rate limit exceeded for National Catalog API'
-                );
+                $retryAfter = (int) $response->header('Retry-After', 60);
+                Log::error('National Catalog API: Rate limit exceeded', [
+                    'gtin' => $gtin,
+                    'retry_after' => $retryAfter,
+                ]);
+                throw new RateLimitException($retryAfter);
             }
 
             // Any other error status
@@ -93,9 +96,9 @@ class NationalCatalogService
                 'body' => $response->body(),
             ]);
 
-            throw new NationalCatalogApiException(
-                "API request failed with status {$response->status()}: {$response->body()}",
-                $response->status()
+            throw new ApiException(
+                statusCode: $response->status(),
+                message: "API request failed: {$response->body()}"
             );
 
         } catch (RequestException $e) {
@@ -104,10 +107,9 @@ class NationalCatalogService
                 'message' => $e->getMessage(),
             ]);
 
-            throw new NationalCatalogApiException(
-                "Network error: {$e->getMessage()}",
-                0,
-                $e
+            throw new ApiException(
+                statusCode: $e->getCode(),
+                message: "Network error: {$e->getMessage()}"
             );
         }
     }
@@ -133,13 +135,3 @@ class NationalCatalogService
             ]);
     }
 }
-
-/**
- * Exception thrown when National Catalog API returns an error.
- */
-class NationalCatalogApiException extends \Exception {}
-
-/**
- * Exception thrown when National Catalog API rate limit is exceeded.
- */
-class NationalCatalogRateLimitException extends NationalCatalogApiException {}

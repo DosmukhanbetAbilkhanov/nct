@@ -1,11 +1,12 @@
 <?php
 
+use App\Exceptions\ApiException;
+use App\Exceptions\ProductNotFoundException;
+use App\Exceptions\RateLimitException;
 use App\Jobs\FetchProductFromNationalCatalog;
 use App\Models\ImportBatch;
 use App\Models\ImportBatchItem;
 use App\Models\Product;
-use App\Services\NationalCatalogApiException;
-use App\Services\NationalCatalogRateLimitException;
 use App\Services\NationalCatalogService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -117,7 +118,7 @@ test('job marks as failed when product not found in API', function () {
     $mockService = Mockery::mock(NationalCatalogService::class);
     $mockService->shouldReceive('fetchProductByGtin')
         ->once()
-        ->andReturn(null);
+        ->andThrow(new ProductNotFoundException('1234567890123'));
 
     $this->app->instance(NationalCatalogService::class, $mockService);
 
@@ -130,7 +131,7 @@ test('job marks as failed when product not found in API', function () {
     // Verify batch item marked as failed
     $batchItem->refresh();
     expect($batchItem->status)->toBe('failed')
-        ->and($batchItem->error_message)->toBe('Product not found in National Catalog');
+        ->and($batchItem->error_message)->toContain('Product not found in National Catalog');
 
     // Verify batch counters
     $this->batch->refresh();
@@ -173,7 +174,7 @@ test('job releases back to queue on rate limit exception', function () {
     $mockService = Mockery::mock(NationalCatalogService::class);
     $mockService->shouldReceive('fetchProductByGtin')
         ->once()
-        ->andThrow(new NationalCatalogRateLimitException('Rate limit exceeded'));
+        ->andThrow(new RateLimitException(60));
 
     $this->app->instance(NationalCatalogService::class, $mockService);
 
@@ -201,7 +202,7 @@ test('job marks as failed on API exception', function () {
     $mockService = Mockery::mock(NationalCatalogService::class);
     $mockService->shouldReceive('fetchProductByGtin')
         ->once()
-        ->andThrow(new NationalCatalogApiException('API Error'));
+        ->andThrow(new ApiException(500, 'API Error'));
 
     $this->app->instance(NationalCatalogService::class, $mockService);
 

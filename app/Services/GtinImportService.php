@@ -35,17 +35,27 @@ class GtinImportService
         try {
             // Parse Excel file using GtinsImport
             $import = new GtinsImport;
-            Excel::import($import, $file);
+
+            try {
+                Excel::import($import, $file);
+            } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+                throw new \InvalidArgumentException('File validation failed: '.$e->getMessage());
+            } catch (\PhpOffice\PhpSpreadsheet\Reader\Exception $e) {
+                throw new \InvalidArgumentException('Unable to read file. Please ensure it is a valid Excel or CSV file.');
+            } catch (\Exception $e) {
+                throw new \InvalidArgumentException('Error parsing file: '.$e->getMessage());
+            }
 
             $gtins = $import->getGtins();
 
             if ($gtins->isEmpty()) {
-                throw new \InvalidArgumentException('No valid GTINs found in file');
+                throw new \InvalidArgumentException('No valid GTINs found in file. Please ensure column A contains 13-digit numeric GTINs.');
             }
 
             Log::info('Extracted GTINs from file', [
                 'batch_id' => $batch->id,
                 'total_gtins' => $gtins->count(),
+                'filename' => $filename,
             ]);
 
             // Create ImportBatchItem for each unique GTIN and dispatch jobs
@@ -72,22 +82,38 @@ class GtinImportService
             Log::info('Import batch created and jobs dispatched', [
                 'batch_id' => $batch->id,
                 'total_gtins' => $gtins->count(),
+                'filename' => $filename,
             ]);
 
             return $batch;
 
-        } catch (\Exception $e) {
-            // Mark batch as failed
+        } catch (\InvalidArgumentException $e) {
+            // Mark batch as failed with user-friendly error message
             $batch->update([
                 'status' => 'failed',
             ]);
 
-            Log::error('Import batch failed', [
+            Log::warning('Import batch validation failed', [
                 'batch_id' => $batch->id,
+                'filename' => $filename,
                 'error' => $e->getMessage(),
             ]);
 
             throw $e;
+        } catch (\Exception $e) {
+            // Mark batch as failed for unexpected errors
+            $batch->update([
+                'status' => 'failed',
+            ]);
+
+            Log::error('Import batch failed with unexpected error', [
+                'batch_id' => $batch->id,
+                'filename' => $filename,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw new \RuntimeException('An unexpected error occurred while processing the file. Please try again.');
         }
     }
 }
