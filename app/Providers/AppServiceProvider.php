@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Services\Contracts\SmsServiceInterface;
+use App\Services\MobizonSmsService;
 use App\Services\NationalCatalogService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
@@ -17,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(NationalCatalogService::class, function () {
             return NationalCatalogService::fromConfig();
         });
+
+        $this->app->bind(SmsServiceInterface::class, MobizonSmsService::class);
     }
 
     /**

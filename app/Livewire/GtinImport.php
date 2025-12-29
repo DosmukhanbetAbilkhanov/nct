@@ -24,6 +24,30 @@ class GtinImport extends Component
     public array $previewStats = [];
 
     /**
+     * Load user's most recent batch on mount.
+     */
+    public function mount(): void
+    {
+        // Load the most recent batch for this user or session
+        if (auth()->check()) {
+            // For authenticated users: load only their batches
+            $this->currentBatch = ImportBatch::where('user_id', auth()->id())
+                ->latest()
+                ->first();
+        } else {
+            // For guests: load batches from current session
+            $this->currentBatch = ImportBatch::whereNull('user_id')
+                ->where('session_id', session()->getId())
+                ->latest()
+                ->first();
+        }
+
+        if ($this->currentBatch && ! $this->currentBatch->isComplete()) {
+            $this->isProcessing = true;
+        }
+    }
+
+    /**
      * Load recent logs for display.
      */
     public function loadLogs(): void
@@ -92,7 +116,9 @@ class GtinImport extends Component
 
         try {
             $service = new GtinImportService;
-            $this->currentBatch = $service->processUpload($this->file);
+            $userId = auth()->check() ? auth()->id() : null;
+            $sessionId = session()->getId();
+            $this->currentBatch = $service->processUpload($this->file, $userId, $sessionId);
             $this->isProcessing = true;
 
             // Clear file input

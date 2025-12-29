@@ -42,4 +42,10 @@ return [
         'retry_times' => 3,
     ],
 
+    'mobizon' => [
+        'api_key' => env('MOBIZON_API_KEY'),
+        'base_url' => env('MOBIZON_BASE_URL', 'https://api.mobizon.kz/service'),
+        'sender_name' => env('MOBIZON_SENDER_NAME', 'NCT'),
+    ],
+
 ];

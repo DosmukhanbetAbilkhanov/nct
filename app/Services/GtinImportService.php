@@ -31,7 +31,7 @@ class GtinImportService
     /**
      * Process an uploaded Excel/CSV file and create import batch.
      */
-    public function processUpload(UploadedFile $file): ImportBatch
+    public function processUpload(UploadedFile $file, ?int $userId = null, ?string $sessionId = null): ImportBatch
     {
         $filename = $file->getClientOriginalName();
 
@@ -39,6 +39,8 @@ class GtinImportService
 
         // Create ImportBatch record with pending status
         $batch = ImportBatch::create([
+            'user_id' => $userId,
+            'session_id' => $sessionId,
             'filename' => $filename,
             'total_gtins' => 0,
             'processed_count' => 0,
@@ -321,6 +323,9 @@ class GtinImportService
             'status' => 'completed',
             'completed_at' => now(),
         ]);
+
+        // Generate export files
+        $batch->generateExportFiles();
 
         Log::info('✅ Synchronous batch processing completed', [
             'batch_id' => $batch->id,

@@ -103,7 +103,7 @@
                                 wire:click="startImport"
                                 wire:loading.attr="disabled"
                                 wire:target="startImport"
-                                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer">
                             <span wire:loading.remove wire:target="startImport">Start Import</span>
                             <span wire:loading wire:target="startImport">Processing...</span>
                         </button>
@@ -175,7 +175,7 @@
                 <div x-data="{ expanded: true }" class="border border-blue-200 rounded-lg overflow-hidden mb-6">
                     <button @click="expanded = !expanded"
                             type="button"
-                            class="w-full bg-blue-50 px-4 py-3 flex items-center justify-between hover:bg-blue-100 transition-colors">
+                            class="w-full bg-blue-50 px-4 py-3 flex items-center justify-between hover:bg-blue-100 transition-colors cursor-pointer">
                         <span class="font-medium text-blue-900 flex items-center">
                             <svg class="w-5 h-5 mr-2 {{ $isProcessing ? 'animate-spin' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -212,7 +212,7 @@
                 <div x-data="{ expanded: true }" class="border border-green-200 rounded-lg overflow-hidden mb-6">
                     <button @click="expanded = !expanded"
                             type="button"
-                            class="w-full bg-green-50 px-4 py-3 flex items-center justify-between hover:bg-green-100 transition-colors">
+                            class="w-full bg-green-50 px-4 py-3 flex items-center justify-between hover:bg-green-100 transition-colors cursor-pointer">
                         <span class="font-medium text-green-900">
                             Imported Products Debug ({{ $currentBatch->success_count }})
                         </span>
@@ -257,7 +257,7 @@
                 <div x-data="{ expanded: false }" class="border border-red-200 rounded-lg overflow-hidden">
                     <button @click="expanded = !expanded"
                             type="button"
-                            class="w-full bg-red-50 px-4 py-3 flex items-center justify-between hover:bg-red-100 transition-colors">
+                            class="w-full bg-red-50 px-4 py-3 flex items-center justify-between hover:bg-red-100 transition-colors cursor-pointer">
                         <span class="font-medium text-red-900">
                             Failed Items ({{ $currentBatch->failed_count }})
                         </span>
@@ -303,7 +303,7 @@
                         @if ($currentBatch->success_file_path)
                             <a href="{{ $currentBatch->success_file_url }}"
                                style="background-color: #16a34a; color: white;"
-                               class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity">
+                               class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity cursor-pointer">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
@@ -314,7 +314,7 @@
                         @if ($currentBatch->failed_file_path)
                             <a href="{{ $currentBatch->failed_file_url }}"
                                style="background-color: #dc2626; color: white;"
-                               class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity">
+                               class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg hover:opacity-90 transition-opacity cursor-pointer">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
@@ -330,7 +330,7 @@
                 <div class="mt-6 flex justify-end">
                     <button wire:click="resetImport"
                             type="button"
-                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
                         Upload New File
                     </button>
                 </div>

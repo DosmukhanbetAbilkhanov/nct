@@ -20,6 +20,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone_number',
         'password',
     ];
 
@@ -42,7 +43,29 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function company(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Company::class);
+    }
+
+    public function importBatches(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ImportBatch::class);
+    }
+
+    public function hasVerifiedPhone(): bool
+    {
+        return ! is_null($this->phone_verified_at);
+    }
+
+    public function markPhoneAsVerified(): void
+    {
+        $this->phone_verified_at = now();
+        $this->save();
     }
 }

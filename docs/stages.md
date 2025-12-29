@@ -2,7 +2,72 @@
 
 > **Project**: GTIN Bulk Import & National Catalog Sync
 > **Stack**: Laravel 12 · Livewire 3 · Alpine.js · Queue-based Processing
-> **Estimated Time**: ~23 hours
+> **Estimated Time**: ~29 hours (including Stage 0)
+
+---
+
+## Stage 0: User Registration & Authentication ⏱️ 6 hours
+
+### Goal
+Implement user registration with SMS verification, dual login (email/phone), optional company management, and batch ownership.
+
+### Features
+- Custom Livewire authentication (register, login, logout)
+- SMS verification via Mobizon API for phone numbers
+- Users can login with email OR phone number
+- Optional company registration (one company per user)
+- Company belongs to User and City
+- Batches belong to Users (user_id foreign key)
+- Kazakhstan cities seeded
+
+### Tasks
+- [x] Create database migrations (users, companies, cities, sms_verification_codes)
+- [x] Build Mobizon SMS service integration
+- [x] Create authentication Livewire components (Register, Login, Logout, CompanySetup)
+- [x] Add form request validation
+- [x] Implement SMS rate limiting
+- [x] Add route protection with auth middleware
+- [x] Update GtinImport for user ownership
+- [x] Schedule SMS code cleanup command
+
+### Models Created
+- City (id, name)
+- Company (user_id, name, bin_or_iin, city_id, address)
+- SmsVerificationCode (phone_number, code_hash, expires_at, verified)
+
+### User Flow
+1. User registers → Sends SMS code → Verifies phone → Creates account
+2. Optional: Setup company (or skip for later)
+3. Login with email OR phone → Access GTIN import
+4. All batches belong to user (isolated by user_id)
+
+### Verification
+- [x] Can register with phone verification
+- [x] Can login with email
+- [x] Can login with phone number
+- [x] SMS codes expire after 10 minutes
+- [x] Rate limiting prevents SMS abuse
+- [x] Company is optional
+- [x] Users only see their own batches
+
+### Files Created
+- Migrations: 5 new migration files
+- Models: City, Company, SmsVerificationCode
+- Services: MobizonSmsService, SmsVerificationService
+- Livewire: Auth/Register, Auth/Login, Auth/Logout, CompanySetup
+- Form Requests: RegisterRequest, CompanyRequest
+- Commands: CleanupExpiredVerificationCodes
+
+### Files Modified
+- app/Models/User.php (add phone fields, relationships)
+- app/Models/ImportBatch.php (add user relationship)
+- app/Livewire/GtinImport.php (add user_id to batches)
+- app/Services/GtinImportService.php (accept user_id parameter)
+- routes/web.php (auth routes, middleware)
+- bootstrap/app.php (guest/auth redirects)
+- config/services.php (Mobizon config)
+- .env.example (Mobizon variables)
+- routes/console.php (schedule cleanup)
 
 ---
 
