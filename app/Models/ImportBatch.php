@@ -19,6 +19,8 @@ class ImportBatch extends Model
         'status',
         'started_at',
         'completed_at',
+        'success_file_path',
+        'failed_file_path',
     ];
 
     /**
@@ -117,6 +119,87 @@ class ImportBatch extends Model
                 'status' => 'completed',
                 'completed_at' => now(),
             ]);
+
+            // Generate export files automatically when batch completes
+            $this->generateExportFiles();
         }
+    }
+
+    /**
+     * Generate export files for this batch.
+     */
+    public function generateExportFiles(): void
+    {
+        $directory = "imports/batch-{$this->id}";
+
+        // Generate successful products file
+        if ($this->success_count > 0) {
+            $successFilename = "successful-products-batch-{$this->id}.xlsx";
+            $successPath = "{$directory}/{$successFilename}";
+
+            \Maatwebsite\Excel\Facades\Excel::store(
+                new \App\Exports\SuccessfulProductsExport($this),
+                $successPath,
+                'local'
+            );
+
+            $this->update(['success_file_path' => $successPath]);
+
+            \Illuminate\Support\Facades\Log::info('✅ Generated successful products export', [
+                'batch_id' => $this->id,
+                'file_path' => $successPath,
+                'product_count' => $this->success_count,
+            ]);
+        }
+
+        // Generate failed GTINs file
+        if ($this->failed_count > 0) {
+            $failedFilename = "failed-gtins-batch-{$this->id}.xlsx";
+            $failedPath = "{$directory}/{$failedFilename}";
+
+            \Maatwebsite\Excel\Facades\Excel::store(
+                new \App\Exports\FailedGtinsExport($this),
+                $failedPath,
+                'local'
+            );
+
+            $this->update(['failed_file_path' => $failedPath]);
+
+            \Illuminate\Support\Facades\Log::info('❌ Generated failed GTINs export', [
+                'batch_id' => $this->id,
+                'file_path' => $failedPath,
+                'failed_count' => $this->failed_count,
+            ]);
+        }
+    }
+
+    /**
+     * Get download URL for successful products file.
+     */
+    public function getSuccessFileUrlAttribute(): ?string
+    {
+        if (! $this->success_file_path) {
+            return null;
+        }
+
+        return route('import.download', [
+            'batch' => $this->id,
+            'type' => 'success',
+        ]);
+    }
+
+    /**
+     * Get download URL for failed GTINs file.
+     */
+    public function getFailedFileUrlAttribute(): ?string
+    {
+        if (! $this->failed_file_path) {
+            return null;
+        }
+
+        return route('import.download', [
+            'batch' => $this->id,
+            'type' => 'failed',
+        ]);
     }
 }

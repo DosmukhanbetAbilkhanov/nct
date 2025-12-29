@@ -70,9 +70,20 @@ class NationalCatalogService
                     throw new ProductNotFoundException($gtin);
                 }
 
-                Log::info('National Catalog API: Product found', ['gtin' => $gtin]);
+                // API returns a numeric indexed array - extract first element
+                if (is_array($data) && isset($data[0])) {
+                    $productData = $data[0];
+                    Log::info('National Catalog API: Product found', ['gtin' => $gtin]);
 
-                return $data;
+                    return $productData;
+                }
+
+                // Handle unexpected response format
+                Log::warning('National Catalog API: Unexpected response format', [
+                    'gtin' => $gtin,
+                    'data' => $data,
+                ]);
+                throw new ProductNotFoundException($gtin);
             }
 
             if ($response->status() === 404) {

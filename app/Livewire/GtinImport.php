@@ -4,7 +4,6 @@ namespace App\Livewire;
 
 use App\Models\ImportBatch;
 use App\Services\GtinImportService;
-use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -12,19 +11,84 @@ class GtinImport extends Component
 {
     use WithFileUploads;
 
-    #[Validate('required|file|mimes:xlsx,xls,csv|max:10240')]
     public $file;
 
     public ?ImportBatch $currentBatch = null;
 
     public bool $isProcessing = false;
 
+    public array $recentLogs = [];
+
+    public ?int $previewGtinCount = null;
+
+    public array $previewStats = [];
+
     /**
-     * Upload and process the GTIN file.
+     * Load recent logs for display.
      */
-    public function upload(): void
+    public function loadLogs(): void
     {
-        $this->validate();
+        $logFile = storage_path('logs/laravel.log');
+
+        if (file_exists($logFile)) {
+            $lines = file($logFile);
+            $recentLines = array_slice($lines, -100); // Last 100 lines
+
+            $this->recentLogs = array_filter($recentLines, function ($line) {
+                // Only show lines with emojis (our processing logs)
+                return preg_match('/[📋🔍✅❌🌐💾🎉📦🚀⏸️]/u', $line);
+            });
+
+            $this->recentLogs = array_values($this->recentLogs); // Reindex
+            $this->recentLogs = array_slice($this->recentLogs, -30); // Keep last 30
+        }
+    }
+
+    /**
+     * Preview the uploaded file and show GTIN count.
+     */
+    public function previewFile(): void
+    {
+        $this->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        try {
+            $import = new \App\Imports\GtinsImport;
+            \Maatwebsite\Excel\Facades\Excel::import($import, $this->file);
+
+            $gtins = $import->getGtins();
+            $this->previewGtinCount = $gtins->count();
+
+            // Calculate processing stats
+            $threshold = \App\Services\GtinImportService::ASYNC_THRESHOLD;
+            $isAsync = $this->previewGtinCount >= $threshold;
+
+            $this->previewStats = [
+                'total_gtins' => $this->previewGtinCount,
+                'processing_mode' => $isAsync ? 'Asynchronous (Queued)' : 'Synchronous (Immediate)',
+                'estimated_time' => $isAsync
+                    ? round($this->previewGtinCount * 2 / 60, 1).' minutes'
+                    : round($this->previewGtinCount * 3).' seconds',
+                'chunks' => $isAsync ? ceil($this->previewGtinCount / 10) : 1,
+            ];
+
+            session()->flash('preview_success', 'File analyzed successfully! Review the details below.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error analyzing file: '.$e->getMessage());
+            $this->previewGtinCount = null;
+            $this->previewStats = [];
+        }
+    }
+
+    /**
+     * Process and import the GTIN file.
+     */
+    public function startImport(): void
+    {
+        $this->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
+        ]);
 
         try {
             $service = new GtinImportService;
@@ -60,8 +124,18 @@ class GtinImport extends Component
      */
     public function resetImport(): void
     {
-        $this->reset(['file', 'currentBatch', 'isProcessing']);
-        session()->forget(['success', 'error']);
+        $this->reset(['file', 'currentBatch', 'isProcessing', 'previewGtinCount', 'previewStats', 'recentLogs']);
+        session()->forget(['success', 'error', 'preview_success']);
+    }
+
+    /**
+     * Handle file update - auto-preview when file is selected.
+     */
+    public function updatedFile(): void
+    {
+        if ($this->file) {
+            $this->previewFile();
+        }
     }
 
     public function render()

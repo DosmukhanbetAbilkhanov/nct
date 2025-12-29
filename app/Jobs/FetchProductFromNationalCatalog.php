@@ -15,6 +15,7 @@ use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Throwable;
 
 class FetchProductFromNationalCatalog implements ShouldQueue
@@ -24,12 +25,20 @@ class FetchProductFromNationalCatalog implements ShouldQueue
     /**
      * The number of times the job may be attempted.
      */
-    public int $tries = 3;
+    public int $tries = 5;
 
     /**
-     * The number of seconds to wait before retrying the job.
+     * The number of seconds to wait before retrying the job (exponential backoff).
      */
-    public array $backoff = [60, 300, 900];
+    public array $backoff = [30, 60, 120, 300, 600];
+
+    /**
+     * Calculate the number of seconds to wait before retrying the job.
+     */
+    public function backoff(): array
+    {
+        return $this->backoff;
+    }
 
     /**
      * Create a new job instance.
@@ -67,7 +76,7 @@ class FetchProductFromNationalCatalog implements ShouldQueue
         try {
             // Validate GTIN format (13 digits, numeric)
             if (! Product::isValidGtin($gtin)) {
-                throw new \InvalidArgumentException("Invalid GTIN format: {$gtin}. Must be 13 digits.");
+                throw new InvalidArgumentException("Invalid GTIN format: {$gtin}. Must be 13 digits.");
             }
 
             // Normalize GTIN
@@ -92,6 +101,15 @@ class FetchProductFromNationalCatalog implements ShouldQueue
             // Product doesn't exist, fetch from National Catalog API
             $productData = $service->fetchProductByGtin($normalizedGtin);
 
+            // Log API response for debugging
+            Log::info('API Response Data', [
+                'gtin' => $normalizedGtin,
+                'full_data' => $productData,
+                'has_ntin' => isset($productData['ntin']),
+                'has_nameRu' => isset($productData['nameRu']),
+                'has_nameKk' => isset($productData['nameKk']),
+            ]);
+
             // Save product to database
             DB::transaction(function () use ($productData, $normalizedGtin) {
                 $product = Product::create([
@@ -110,6 +128,8 @@ class FetchProductFromNationalCatalog implements ShouldQueue
                 Log::info('Product saved to database', [
                     'gtin' => $normalizedGtin,
                     'product_id' => $product->id,
+                    'saved_ntin' => $product->ntin,
+                    'saved_nameRu' => $product->nameRu,
                 ]);
 
                 // Update batch item with success and product reference
@@ -130,15 +150,28 @@ class FetchProductFromNationalCatalog implements ShouldQueue
             });
 
         } catch (RateLimitException $e) {
-            // Rate limit hit - release job back to queue
-            Log::warning('Rate limit exceeded, releasing job back to queue', [
+            // Rate limit hit - release job back to queue with exponential backoff
+            $retryAfter = $e->retryAfter;
+            $attempt = $this->attempts();
+
+            // Use exponential backoff if retry-after is not specified
+            if (! $retryAfter && $attempt <= count($this->backoff)) {
+                $retryAfter = $this->backoff[$attempt - 1];
+            }
+
+            Log::warning('⏸️ Rate limit exceeded, releasing job back to queue', [
                 'gtin' => $gtin,
                 'batch_item_id' => $this->batchItem->id,
-                'retry_after' => $e->retryAfter,
+                'retry_after_seconds' => $retryAfter,
+                'attempt' => $attempt,
+                'max_attempts' => $this->tries,
             ]);
 
-            // Release back to queue with delay from API response
-            $this->release($e->retryAfter);
+            // Don't increment processed count - job will retry
+            $this->batchItem->update(['status' => 'pending']);
+
+            // Release back to queue with delay
+            $this->release($retryAfter);
 
         } catch (ApiException $e) {
             // API error - log and mark as failed
@@ -154,7 +187,7 @@ class FetchProductFromNationalCatalog implements ShouldQueue
                 $this->batchItem->batch->incrementProcessed(success: false);
             });
 
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             // Validation error - mark as failed (non-retryable)
             Log::error('GTIN validation error', [
                 'gtin' => $gtin,

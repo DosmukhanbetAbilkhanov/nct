@@ -26,7 +26,7 @@ test('fetchProductByGtin returns product data on successful response', function 
     ];
 
     Http::fake([
-        '*/portal/api/v2/products/*' => Http::response($productData, 200),
+        '*/portal/api/v2/products/*' => Http::response([$productData], 200),
     ]);
 
     $result = $this->service->fetchProductByGtin($gtin);
@@ -109,7 +109,7 @@ test('fetchProductByGtin logs successful requests', function () {
     $gtin = '1234567890123';
 
     Http::fake([
-        '*/portal/api/v2/products/*' => Http::response(['gtin' => $gtin], 200),
+        '*/portal/api/v2/products/*' => Http::response([['gtin' => $gtin]], 200),
     ]);
 
     $this->service->fetchProductByGtin($gtin);
