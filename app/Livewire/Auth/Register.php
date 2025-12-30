@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auth;
 
+use App\Livewire\Concerns\HandlesSmsVerification;
 use App\Models\User;
 use App\Services\SmsVerificationService;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +12,8 @@ use Livewire\Component;
 
 class Register extends Component
 {
+    use HandlesSmsVerification;
+
     public string $name = '';
 
     public string $email = '';
@@ -23,27 +26,37 @@ class Register extends Component
 
     public string $verification_code = '';
 
-    public bool $codeSent = false;
-
     public bool $isRegistering = false;
 
-    public function sendVerificationCode(SmsVerificationService $smsService): void
+    /**
+     * Auto-verify code when user types 6 digits.
+     */
+    public function updatedVerificationCode(): void
     {
-        $this->validate([
-            'phone_number' => ['required', 'string', 'regex:/^(\+7|7|8)?[0-9]{10}$/', 'unique:users'],
-        ]);
+        $this->verifyEnteredCode();
+    }
 
-        $result = $smsService->sendVerificationCode(
-            $this->cleanPhoneNumber($this->phone_number),
-            request()->ip()
-        );
+    /**
+     * Trait method implementations.
+     */
+    protected function getPhoneFieldName(): string
+    {
+        return 'phone_number';
+    }
 
-        if ($result['success']) {
-            $this->codeSent = true;
-            session()->flash('success', $result['message']);
-        } else {
-            session()->flash('error', $result['message']);
-        }
+    protected function getPhoneNumber(): string
+    {
+        return $this->phone_number;
+    }
+
+    protected function getVerificationCodeFieldName(): string
+    {
+        return 'verification_code';
+    }
+
+    protected function getVerificationCode(): string
+    {
+        return $this->verification_code;
     }
 
     public function register(SmsVerificationService $smsService): void
@@ -58,14 +71,15 @@ class Register extends Component
             'verification_code' => ['required', 'string', 'size:6'],
         ]);
 
-        $cleanedPhone = $this->cleanPhoneNumber($this->phone_number);
-
-        if (! $smsService->verifyCode($cleanedPhone, $this->verification_code)) {
-            $this->addError('verification_code', 'Invalid or expired verification code.');
+        // Check if code has been verified
+        if (! $this->codeVerified) {
+            $this->addError('verification_code', 'Please verify your phone number first.');
             $this->isRegistering = false;
 
             return;
         }
+
+        $cleanedPhone = $this->cleanPhoneNumber($this->phone_number);
 
         $user = User::create([
             'name' => $validated['name'],
@@ -75,19 +89,14 @@ class Register extends Component
             'phone_verified_at' => now(),
         ]);
 
-        // IMPORTANT: Associate guest batches BEFORE logging in and regenerating session
-        $oldSessionId = session()->getId();
-
         // Get intended URL BEFORE logging in and regenerating session
-        $intended = session()->get('url.intended', '/');
+        $intended = session()->get('url.intended', route('gtin-import'));
 
-        // Associate any guest batches from the previous session with the newly registered user
-        \App\Models\ImportBatch::whereNull('user_id')
-            ->where('session_id', $oldSessionId)
-            ->update([
-                'user_id' => $user->id,
-                'session_id' => null, // Clear session_id since batch now belongs to user
-            ]);
+        // If intended URL is a download route, redirect to import page instead
+        // This prevents the user from ending up on a blank download page after registration
+        if (str_contains($intended, '/import/download/')) {
+            $intended = route('gtin-import');
+        }
 
         Auth::login($user);
 
@@ -95,19 +104,6 @@ class Register extends Component
 
         // Redirect to intended URL or home page
         $this->redirect($intended);
-    }
-
-    protected function cleanPhoneNumber(string $phone): string
-    {
-        $cleaned = preg_replace('/\D/', '', $phone);
-
-        if (str_starts_with($cleaned, '8')) {
-            $cleaned = '7'.substr($cleaned, 1);
-        } elseif (! str_starts_with($cleaned, '7')) {
-            $cleaned = '7'.$cleaned;
-        }
-
-        return $cleaned;
     }
 
     public function render()

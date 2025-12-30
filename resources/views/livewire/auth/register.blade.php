@@ -27,25 +27,15 @@
         </div>
 
         <div class="mb-4">
-            <label for="phone_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number</label>
-            <div class="flex gap-2">
-                <input wire:model="phone_number" type="text" id="phone_number" placeholder="+7 777 123 4567" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                @if (!$codeSent)
-                    <button wire:click.prevent="sendVerificationCode" type="button" class="mt-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 whitespace-nowrap cursor-pointer">
-                        Send Code
-                    </button>
-                @endif
-            </div>
-            @error('phone_number') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+            <x-sms-verification
+                phone-model="phone_number"
+                code-model="verification_code"
+                :code-sent="$codeSent"
+                :code-verified="$codeVerified"
+                :remaining-seconds="$this->getRemainingSeconds()"
+                phone-placeholder="+7 777 123 4567"
+            />
         </div>
-
-        @if ($codeSent)
-            <div class="mb-4">
-                <label for="verification_code" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Verification Code</label>
-                <input wire:model="verification_code" type="text" id="verification_code" maxlength="6" placeholder="123456" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                @error('verification_code') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-            </div>
-        @endif
 
         <div class="mb-4">
             <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>

@@ -1,8 +1,8 @@
 <?php
 
-use App\Jobs\FetchProductFromNationalCatalog;
 use App\Livewire\GtinImport;
 use App\Models\ImportBatch;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->user = User::factory()->create();
+});
 
 test('component renders successfully', function () {
     Livewire::test(GtinImport::class)
@@ -21,35 +25,56 @@ test('component renders successfully', function () {
 test('component displays file upload form when no batch exists', function () {
     Livewire::test(GtinImport::class)
         ->assertSee('Upload a file')
-        ->assertSee('drag and drop')
-        ->assertSee('Start Import');
+        ->assertSee('Excel or CSV files');
 });
 
-test('upload validates required file', function () {
+test('startImport validates required file', function () {
+    $this->actingAs($this->user);
+
     Livewire::test(GtinImport::class)
-        ->call('upload')
+        ->call('startImport')
         ->assertHasErrors(['file' => 'required']);
 });
 
-test('upload validates file type', function () {
+test('startImport validates file type', function () {
+    $this->actingAs($this->user);
+
     $file = UploadedFile::fake()->create('test.txt', 100);
 
     Livewire::test(GtinImport::class)
         ->set('file', $file)
-        ->call('upload')
+        ->call('startImport')
         ->assertHasErrors(['file' => 'mimes']);
 });
 
-test('upload validates file size', function () {
+test('startImport validates file size', function () {
+    $this->actingAs($this->user);
+
     $file = UploadedFile::fake()->create('test.xlsx', 11000); // 11MB
 
     Livewire::test(GtinImport::class)
         ->set('file', $file)
-        ->call('upload')
+        ->call('startImport')
         ->assertHasErrors(['file' => 'max']);
 });
 
-test('upload processes valid CSV file', function () {
+test('guest users see auth modal when trying to start import', function () {
+    Storage::fake('local');
+
+    $content = file_get_contents(base_path('tests/Fixtures/sample-gtins.csv'));
+    $file = UploadedFile::fake()->createWithContent('sample-gtins.csv', $content);
+
+    Livewire::test(GtinImport::class)
+        ->set('file', $file)
+        ->call('previewFile') // Preview should work for guests
+        ->assertSet('previewGtinCount', 5)
+        ->call('startImport') // But start import should show modal
+        ->assertSet('showAuthModal', true);
+});
+
+test('startImport processes valid CSV file', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
     Storage::fake('local');
 
@@ -61,14 +86,16 @@ test('upload processes valid CSV file', function () {
 
     $component = Livewire::test(GtinImport::class)
         ->set('file', $file)
-        ->call('upload')
-        ->assertHasNoErrors()
-        ->assertSet('isProcessing', true);
+        ->call('startImport')
+        ->assertHasNoErrors();
 
     expect($component->get('currentBatch'))->not->toBeNull();
+    expect($component->get('currentBatch')->user_id)->toBe($this->user->id);
 });
 
-test('upload creates import batch and dispatches jobs', function () {
+test('startImport creates import batch for authenticated user', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
     Storage::fake('local');
 
@@ -78,30 +105,38 @@ test('upload creates import batch and dispatches jobs', function () {
 
     Livewire::test(GtinImport::class)
         ->set('file', $file)
-        ->call('upload');
+        ->call('startImport');
 
     expect(ImportBatch::count())->toBe(1);
-    Queue::assertPushed(FetchProductFromNationalCatalog::class, 5);
+    expect(ImportBatch::first()->user_id)->toBe($this->user->id);
+    expect(ImportBatch::first()->session_id)->toBeNull();
+
+    // Small files (< 50 GTINs) process synchronously, so status will be 'completed'
+    // Large files (>= 50 GTINs) dispatch queued jobs
 });
 
-test('upload sets success state for valid file', function () {
+test('startImport processes small files synchronously', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
     Storage::fake('local');
 
-    // Copy test fixture to fake storage
+    // Copy test fixture to fake storage (5 GTINs - below async threshold of 50)
     $content = file_get_contents(base_path('tests/Fixtures/sample-gtins.csv'));
     $file = UploadedFile::fake()->createWithContent('sample-gtins.csv', $content);
 
     $component = Livewire::test(GtinImport::class)
         ->set('file', $file)
-        ->call('upload')
-        ->assertSet('isProcessing', true);
+        ->call('startImport')
+        ->assertSet('isProcessing', false); // Small files complete synchronously
 
     expect($component->get('currentBatch'))->not->toBeNull();
-    expect($component->get('currentBatch')->status)->toBe('processing');
+    expect($component->get('currentBatch')->status)->toBe('completed'); // Completed immediately
 });
 
-test('upload handles errors gracefully for invalid file', function () {
+test('startImport handles errors gracefully for invalid file', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
     Storage::fake('local');
 
@@ -111,7 +146,7 @@ test('upload handles errors gracefully for invalid file', function () {
 
     $component = Livewire::test(GtinImport::class)
         ->set('file', $file)
-        ->call('upload');
+        ->call('startImport');
 
     // Batch should be created but in failed status
     expect(ImportBatch::count())->toBe(1);
@@ -119,9 +154,12 @@ test('upload handles errors gracefully for invalid file', function () {
 });
 
 test('component displays progress section when batch exists', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
 
     $batch = ImportBatch::create([
+        'user_id' => $this->user->id,
         'filename' => 'test.csv',
         'total_gtins' => 10,
         'processed_count' => 5,
@@ -143,9 +181,12 @@ test('component displays progress section when batch exists', function () {
 });
 
 test('loadBatchProgress refreshes batch data', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
 
     $batch = ImportBatch::create([
+        'user_id' => $this->user->id,
         'filename' => 'test.csv',
         'total_gtins' => 10,
         'processed_count' => 5,
@@ -173,9 +214,12 @@ test('loadBatchProgress refreshes batch data', function () {
 });
 
 test('loadBatchProgress stops processing when batch is completed', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
 
     $batch = ImportBatch::create([
+        'user_id' => $this->user->id,
         'filename' => 'test.csv',
         'total_gtins' => 10,
         'processed_count' => 10,
@@ -194,9 +238,12 @@ test('loadBatchProgress stops processing when batch is completed', function () {
 });
 
 test('loadBatchProgress stops processing when batch is failed', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
 
     $batch = ImportBatch::create([
+        'user_id' => $this->user->id,
         'filename' => 'test.csv',
         'total_gtins' => 10,
         'processed_count' => 5,
@@ -214,9 +261,12 @@ test('loadBatchProgress stops processing when batch is failed', function () {
 });
 
 test('resetImport clears state', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
 
     $batch = ImportBatch::create([
+        'user_id' => $this->user->id,
         'filename' => 'test.csv',
         'total_gtins' => 10,
         'processed_count' => 10,
@@ -237,9 +287,12 @@ test('resetImport clears state', function () {
 });
 
 test('component shows upload new file button when processing is complete', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
 
     $batch = ImportBatch::create([
+        'user_id' => $this->user->id,
         'filename' => 'test.csv',
         'total_gtins' => 10,
         'processed_count' => 10,
@@ -257,9 +310,12 @@ test('component shows upload new file button when processing is complete', funct
 });
 
 test('component calculates progress percentage correctly', function () {
+    $this->actingAs($this->user);
+
     Queue::fake();
 
     $batch = ImportBatch::create([
+        'user_id' => $this->user->id,
         'filename' => 'test.csv',
         'total_gtins' => 100,
         'processed_count' => 50,

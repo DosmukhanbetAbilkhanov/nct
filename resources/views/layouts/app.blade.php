@@ -20,7 +20,6 @@
                             {{ config('app.name', 'NCT') }}
                         </h1>
                     </div>
-                    <p>{{ session()->getId() }}</p>
                     <div class="flex items-center gap-4">
                         @auth
                             <span class="text-sm text-gray-700 dark:text-gray-300">

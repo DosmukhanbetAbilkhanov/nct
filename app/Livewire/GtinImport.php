@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Concerns\HandlesSmsVerification;
 use App\Models\ImportBatch;
 use App\Services\GtinImportService;
 use Livewire\Component;
@@ -9,7 +10,7 @@ use Livewire\WithFileUploads;
 
 class GtinImport extends Component
 {
-    use WithFileUploads;
+    use HandlesSmsVerification, WithFileUploads;
 
     public $file;
 
@@ -23,27 +24,47 @@ class GtinImport extends Component
 
     public array $previewStats = [];
 
+    public bool $showAuthModal = false;
+
+    public string $activeAuthTab = 'login';
+
+    // Login form fields
+    public string $loginEmail = '';
+
+    public string $loginPassword = '';
+
+    public bool $remember = false;
+
+    // Register form fields
+    public string $registerName = '';
+
+    public string $registerEmail = '';
+
+    public string $registerPhone = '';
+
+    public string $registerPassword = '';
+
+    public string $registerPasswordConfirmation = '';
+
+    public string $verificationCode = '';
+
     /**
      * Load user's most recent batch on mount.
      */
     public function mount(): void
     {
-        // Load the most recent batch for this user or session
+        // Restore file from session if guest uploaded before login
+        $this->restoreFileFromSession();
+
+        // Load the most recent batch for authenticated user only
         if (auth()->check()) {
-            // For authenticated users: load only their batches
             $this->currentBatch = ImportBatch::where('user_id', auth()->id())
                 ->latest()
                 ->first();
-        } else {
-            // For guests: load batches from current session
-            $this->currentBatch = ImportBatch::whereNull('user_id')
-                ->where('session_id', session()->getId())
-                ->latest()
-                ->first();
-        }
 
-        if ($this->currentBatch && ! $this->currentBatch->isComplete()) {
-            $this->isProcessing = true;
+            if ($this->currentBatch && ! $this->currentBatch->isComplete()) {
+                $this->isProcessing = true;
+            }
         }
     }
 
@@ -114,15 +135,27 @@ class GtinImport extends Component
             'file' => 'required|file|mimes:xlsx,xls,csv|max:10240',
         ]);
 
+        // Require authentication to start import
+        if (! auth()->check()) {
+            $this->saveFileForLater();
+            $this->showAuthModal = true;
+
+            return;
+        }
+
         try {
             $service = new GtinImportService;
-            $userId = auth()->check() ? auth()->id() : null;
-            $sessionId = session()->getId();
-            $this->currentBatch = $service->processUpload($this->file, $userId, $sessionId);
-            $this->isProcessing = true;
+            $this->currentBatch = $service->processUpload($this->file, auth()->id(), null);
 
-            // Clear file input
+            // Refresh batch to check if it completed synchronously (small files)
+            $this->currentBatch->refresh();
+
+            // Set processing state based on batch status
+            $this->isProcessing = ! $this->currentBatch->isComplete();
+
+            // Clear file input and session
             $this->reset('file');
+            $this->clearSavedFile();
 
             session()->flash('success', 'Import started successfully!');
         } catch (\Exception $e) {
@@ -162,6 +195,200 @@ class GtinImport extends Component
         if ($this->file) {
             $this->previewFile();
         }
+    }
+
+    /**
+     * Switch authentication tab.
+     */
+    public function switchAuthTab(string $tab): void
+    {
+        $this->activeAuthTab = $tab;
+        $this->resetErrorBag();
+    }
+
+    /**
+     * Handle login submission.
+     */
+    public function login(): void
+    {
+        $this->validate([
+            'loginEmail' => ['required', 'string'],
+            'loginPassword' => ['required', 'string'],
+        ]);
+
+        $credentials = str_contains($this->loginEmail, '@')
+            ? ['email' => $this->loginEmail, 'password' => $this->loginPassword]
+            : ['phone_number' => $this->cleanPhoneNumber($this->loginEmail), 'password' => $this->loginPassword];
+
+        if (! auth()->attempt($credentials, $this->remember)) {
+            $this->addError('loginEmail', 'These credentials do not match our records.');
+
+            return;
+        }
+
+        session()->regenerate();
+
+        // Close modal and start import with preserved file
+        $this->showAuthModal = false;
+        $this->reset(['loginEmail', 'loginPassword', 'remember']);
+
+        // Now that user is authenticated, start the import
+        if ($this->file) {
+            $this->startImport();
+        }
+    }
+
+    /**
+     * Auto-verify code when user types 6 digits.
+     */
+    public function updatedVerificationCode(): void
+    {
+        $this->verifyEnteredCode();
+    }
+
+    /**
+     * Trait method implementations.
+     */
+    protected function getPhoneFieldName(): string
+    {
+        return 'registerPhone';
+    }
+
+    protected function getPhoneNumber(): string
+    {
+        return $this->registerPhone;
+    }
+
+    protected function getVerificationCodeFieldName(): string
+    {
+        return 'verificationCode';
+    }
+
+    protected function getVerificationCode(): string
+    {
+        return $this->verificationCode;
+    }
+
+    /**
+     * Handle registration submission.
+     */
+    public function register(): void
+    {
+        $validated = $this->validate([
+            'registerName' => ['required', 'string', 'max:255'],
+            'registerEmail' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'registerPhone' => ['required', 'string', 'regex:/^(\+7|7|8)?[0-9]{10}$/', 'unique:users,phone_number'],
+            'registerPassword' => ['required', 'confirmed:registerPasswordConfirmation', \Illuminate\Validation\Rules\Password::defaults()],
+            'verificationCode' => ['required', 'string', 'size:6'],
+        ]);
+
+        // Check if code has been verified
+        if (! $this->codeVerified) {
+            $this->addError('verificationCode', 'Please verify your phone number first.');
+
+            return;
+        }
+
+        $cleanedPhone = $this->cleanPhoneNumber($this->registerPhone);
+
+        $user = \App\Models\User::create([
+            'name' => $validated['registerName'],
+            'email' => $validated['registerEmail'],
+            'phone_number' => $cleanedPhone,
+            'password' => \Illuminate\Support\Facades\Hash::make($validated['registerPassword']),
+            'phone_verified_at' => now(),
+        ]);
+
+        auth()->login($user);
+        session()->regenerate();
+
+        // Close modal and reset form
+        $this->showAuthModal = false;
+        $this->reset(['registerName', 'registerEmail', 'registerPhone', 'registerPassword', 'registerPasswordConfirmation', 'verificationCode', 'codeSent', 'codeSentAt', 'codeVerified']);
+
+        // Now that user is authenticated, start the import
+        if ($this->file) {
+            $this->startImport();
+        }
+    }
+
+    /**
+     * Close authentication modal.
+     */
+    public function closeAuthModal(): void
+    {
+        $this->showAuthModal = false;
+        $this->reset(['loginEmail', 'loginPassword', 'remember', 'registerName', 'registerEmail', 'registerPhone', 'registerPassword', 'registerPasswordConfirmation', 'verificationCode', 'codeSent', 'codeSentAt', 'codeVerified']);
+    }
+
+    /**
+     * Save uploaded file to temporary storage for later use after login.
+     */
+    protected function saveFileForLater(): void
+    {
+        if (! $this->file) {
+            return;
+        }
+
+        // Save file to temporary location
+        $tempPath = $this->file->store('temp/uploads', 'local');
+
+        // Store file information in session
+        session([
+            'pending_import' => [
+                'temp_path' => $tempPath,
+                'original_name' => $this->file->getClientOriginalName(),
+                'gtin_count' => $this->previewGtinCount,
+                'stats' => $this->previewStats,
+            ],
+        ]);
+    }
+
+    /**
+     * Restore file from session after login.
+     */
+    protected function restoreFileFromSession(): void
+    {
+        if (! session()->has('pending_import')) {
+            return;
+        }
+
+        $pendingImport = session('pending_import');
+
+        // Restore preview data
+        $this->previewGtinCount = $pendingImport['gtin_count'];
+        $this->previewStats = $pendingImport['stats'];
+
+        // Create a temporary uploaded file instance from stored path
+        $tempPath = storage_path('app/'.$pendingImport['temp_path']);
+
+        if (file_exists($tempPath)) {
+            // Create Livewire temporary uploaded file from the stored file
+            $this->file = \Livewire\Features\SupportFileUploads\TemporaryUploadedFile::createFromLivewire($tempPath);
+
+            session()->flash('info', 'Your previously uploaded file has been restored. Click "Start Import" to continue.');
+        }
+    }
+
+    /**
+     * Clear saved file from session and temporary storage.
+     */
+    protected function clearSavedFile(): void
+    {
+        if (! session()->has('pending_import')) {
+            return;
+        }
+
+        $pendingImport = session('pending_import');
+        $tempPath = storage_path('app/'.$pendingImport['temp_path']);
+
+        // Delete temporary file
+        if (file_exists($tempPath)) {
+            @unlink($tempPath);
+        }
+
+        // Clear session
+        session()->forget('pending_import');
     }
 
     public function render()

@@ -36,19 +36,14 @@ class Login extends Component
 
         RateLimiter::clear($this->throttleKey());
 
-        // IMPORTANT: Associate guest batches BEFORE regenerating session
-        $oldSessionId = session()->getId();
-
         // Get intended URL BEFORE regenerating session (regenerate clears session data)
         $intended = session()->get('url.intended', route('gtin-import'));
 
-        // Associate any guest batches from the previous session with the logged-in user
-        \App\Models\ImportBatch::whereNull('user_id')
-            ->where('session_id', $oldSessionId)
-            ->update([
-                'user_id' => auth()->id(),
-                'session_id' => null, // Clear session_id since batch now belongs to user
-            ]);
+        // If intended URL is a download route, redirect to import page instead
+        // This prevents the user from ending up on a blank download page after login
+        if (str_contains($intended, '/import/download/')) {
+            $intended = route('gtin-import');
+        }
 
         session()->regenerate();
 

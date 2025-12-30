@@ -19,7 +19,7 @@ beforeEach(function () {
     ]);
 });
 
-it('redirects back to intended URL after login when accessing protected route', function () {
+it('redirects to import page after login when accessing download route', function () {
     // Create a completed import batch for the user
     $batch = ImportBatch::factory()->create([
         'user_id' => $this->user->id,
@@ -42,12 +42,13 @@ it('redirects back to intended URL after login when accessing protected route', 
         ->type('#password', 'password123')
         ->submit();
 
-    // Wait a moment for navigation and download to happen
+    // Wait a moment for navigation
     $page->wait(2);
 
-    // Should be redirected back to the download URL and file should download
-    // Note: The download will trigger, so we just verify we're not stuck on login page
-    $page->assertDontSee('Email or Phone Number')
+    // Should be redirected to the import page instead of the download URL
+    // This prevents the user from ending up on a blank download page
+    $page->assertSee('GTIN Import')
+        ->assertSee($this->user->name)
         ->assertNoJavascriptErrors();
 })->group('browser', 'auth');
 
@@ -101,39 +102,24 @@ it('shows login and register buttons for guest users', function () {
         ->assertDontSee('Logout');
 })->group('browser', 'auth');
 
-it('associates guest batches with user after login', function () {
-    // Create a guest batch (no user_id) with the current session
-    $batch = ImportBatch::factory()->create([
-        'user_id' => null,
-        'session_id' => 'test-session-123',
-        'status' => 'completed',
-        'success_file_path' => 'imports/batch-1/successful-products.xlsx',
-        'success_count' => 5,
-    ]);
+it('shows auth modal when guest tries to start import', function () {
+    $page = visit('/');
 
-    // Verify batch has no user
-    expect($batch->user_id)->toBeNull();
-
-    // Visit login page
-    $page = visit('/login');
-
-    // Login with valid credentials
+    // Guest should see login and register buttons
     $page->assertSee('Login')
-        ->type('#login', 'test@example.com')
-        ->type('#password', 'password123')
-        ->submit();
-
-    // Wait for navigation
-    $page->wait(2);
-
-    // Should be logged in and on home page
-    $page->assertSee('GTIN Import')
-        ->assertSee($this->user->name)
+        ->assertSee('Register')
         ->assertNoJavascriptErrors();
 
-    // Note: The session_id matching won't work in tests the same way as in real usage
-    // In a real scenario, the guest creates the batch, then logs in, and the batch gets associated
-})->group('browser', 'auth', 'guest-batches');
+    // TODO: Add test for file upload and auth modal when Pest browser testing supports it
+    // This would involve:
+    // 1. Upload a file as guest
+    // 2. See GTIN count preview
+    // 3. Click "Start Import"
+    // 4. See authentication modal
+    // 5. Click "Login" in modal
+    // 6. Complete login
+    // 7. Return to import page with file preserved
+})->skip('File upload in browser tests requires additional setup')->group('browser', 'auth');
 
 it('redirects to home page after registration', function () {
     $page = visit('/register');
