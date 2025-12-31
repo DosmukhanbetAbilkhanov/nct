@@ -22,6 +22,9 @@
                     </div>
                     <div class="flex items-center gap-4">
                         @auth
+                            <a href="{{ route('my-requests') }}" class="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer">
+                                My requests
+                            </a>
                             <span class="text-sm text-gray-700 dark:text-gray-300">
                                 {{ auth()->user()->name }}
                             </span>

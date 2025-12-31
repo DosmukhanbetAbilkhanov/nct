@@ -4,6 +4,7 @@ use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\CompanySetup;
 use App\Livewire\GtinImport;
+use App\Livewire\MyRequests;
 use App\Models\ImportBatch;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +19,7 @@ Route::get('/', GtinImport::class)->name('gtin-import');
 
 Route::middleware('auth')->group(function () {
     Route::get('/company/setup', CompanySetup::class)->name('company.setup');
+    Route::get('/my-requests', MyRequests::class)->name('my-requests');
 
     // Download requires authentication
     Route::get('/import/download/{batch}/{type}', function (ImportBatch $batch, string $type) {
