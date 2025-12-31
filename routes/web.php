@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LanguageController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\CompanySetup;
@@ -16,6 +17,9 @@ Route::middleware('guest')->group(function () {
 
 // Homepage - accessible by everyone
 Route::get('/', GtinImport::class)->name('gtin-import');
+
+// Language switcher
+Route::get('/language/{locale}', [LanguageController::class, 'switch'])->name('language.switch');
 
 Route::middleware('auth')->group(function () {
     Route::get('/company/setup', CompanySetup::class)->name('company.setup');

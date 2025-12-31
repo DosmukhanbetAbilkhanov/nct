@@ -4,11 +4,18 @@
     'codeSent' => false,
     'codeVerified' => false,
     'remainingSeconds' => 0,
-    'phoneLabel' => 'Phone Number',
-    'phonePlaceholder' => '+7 XXX XXX XX XX',
-    'codeLabel' => 'Verification Code',
-    'sendButtonText' => 'Send Code',
+    'phoneLabel' => null,
+    'phonePlaceholder' => null,
+    'codeLabel' => null,
+    'sendButtonText' => null,
 ])
+
+@php
+    $phoneLabel = $phoneLabel ?? __('auth.phone_number');
+    $phonePlaceholder = $phonePlaceholder ?? __('auth.phone_placeholder');
+    $codeLabel = $codeLabel ?? __('auth.verification_code');
+    $sendButtonText = $sendButtonText ?? __('auth.send_code');
+@endphp
 
 <div x-data="{
     remainingSeconds: {{ $remainingSeconds }},
@@ -61,7 +68,7 @@
                         wire:loading.class="opacity-50 cursor-not-allowed"
                         class="px-4 py-2 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 whitespace-nowrap cursor-pointer">
                     <span wire:loading.remove>{{ $sendButtonText }}</span>
-                    <span wire:loading>Sending...</span>
+                    <span wire:loading>{{ __('auth.sending') }}</span>
                 </button>
             @endif
 
@@ -82,7 +89,7 @@
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                     </svg>
-                    <span>Verified</span>
+                    <span>{{ __('auth.verified') }}</span>
                 </div>
             @endif
         </div>
@@ -128,7 +135,7 @@
             <!-- Help Text -->
             @if(!$codeVerified)
                 <p class="mt-1 text-xs text-gray-500">
-                    Enter the 6-digit code sent to your phone. Code expires in <span x-text="formatTime(remainingSeconds)"></span>.
+                    {!! __('auth.enter_code_help', ['time' => '<span x-text="formatTime(remainingSeconds)"></span>']) !!}
                 </p>
             @endif
 
@@ -138,7 +145,7 @@
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                     </svg>
-                    Phone number verified successfully!
+                    {{ __('auth.phone_verified_success') }}
                 </p>
             @endif
         </div>
