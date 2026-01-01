@@ -16,9 +16,18 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16">
                     <div class="flex items-center">
-                        <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
-                            {{ config('app.name', 'NCT') }}
-                        </h1>
+                        <a href="{{ route('gtin-import') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600">
+                                <path d="M3 5v14"/>
+                                <path d="M8 5v14"/>
+                                <path d="M12 5v14"/>
+                                <path d="M17 5v14"/>
+                                <path d="M21 5v14"/>
+                            </svg>
+                            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+                                {{ config('app.name', 'NCT') }}
+                            </h1>
+                        </a>
                     </div>
                     <div class="flex items-center gap-4">
                         <!-- Language Switcher -->
