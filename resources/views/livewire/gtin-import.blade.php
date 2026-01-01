@@ -362,7 +362,7 @@
     @if ($showAuthModal)
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             {{-- Background overlay --}}
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"
                  wire:click="closeAuthModal"
                  aria-hidden="true"></div>
 
@@ -371,70 +371,100 @@
                 {{-- Center modal --}}
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-                {{-- Modal panel --}}
-                <div class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full z-10">
+                {{-- Modal panel with gradient decoration --}}
+                <div class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-10">
+                    {{-- Decorative gradient --}}
+                    <div aria-hidden="true" class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
+                        <div style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)" class="relative left-1/2 -z-10 aspect-[1155/678] w-[36.125rem] max-w-none -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%-20rem)] sm:w-[72.1875rem]"></div>
+                    </div>
+
                     {{-- Close button --}}
                     <button wire:click="closeAuthModal"
                             type="button"
-                            class="absolute top-4 right-4 text-gray-400 hover:text-gray-500 cursor-pointer">
+                            class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors z-10">
+                        <span class="sr-only">Close</span>
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
 
+                    {{-- Modal Header --}}
+                    <div class="px-6 pt-8 pb-4 text-center">
+                        <h3 class="text-2xl font-semibold text-gray-900">{{ __('import.authentication_required') }}</h3>
+                        <p class="mt-2 text-sm text-gray-600">{{ __('import.auth_description') }}</p>
+                    </div>
+
                     {{-- Tabs --}}
-                    <div class="border-b border-gray-200">
-                        <nav class="flex -mb-px">
+                    <div class="border-b border-gray-200 px-6">
+                        <nav class="flex -mb-px gap-8">
                             <button wire:click="switchAuthTab('login')"
                                     type="button"
-                                    class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm cursor-pointer {{ $activeAuthTab === 'login' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                    class="py-4 border-b-2 font-semibold text-sm cursor-pointer transition-colors {{ $activeAuthTab === 'login' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                                 {{ __('import.login') }}
                             </button>
                             <button wire:click="switchAuthTab('register')"
                                     type="button"
-                                    class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm cursor-pointer {{ $activeAuthTab === 'register' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                                    class="py-4 border-b-2 font-semibold text-sm cursor-pointer transition-colors {{ $activeAuthTab === 'register' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                                 {{ __('import.register') }}
                             </button>
                         </nav>
                     </div>
 
                     {{-- Tab Content --}}
-                    <div class="p-6">
+                    <div class="px-6 py-6">
                         {{-- Login Form --}}
                         @if ($activeAuthTab === 'login')
                             <form wire:submit="login">
-                                <div class="space-y-4">
+                                <div class="grid grid-cols-1 gap-y-6">
                                     <div>
-                                        <label for="loginEmail" class="block text-sm font-medium text-gray-700">{{ __('import.email_or_phone') }}</label>
-                                        <input type="text"
-                                               id="loginEmail"
-                                               wire:model="loginEmail"
-                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                               required>
-                                        @error('loginEmail') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                        <label for="loginEmail" class="block text-sm/6 font-semibold text-gray-900">{{ __('import.email_or_phone') }}</label>
+                                        <div class="mt-2.5">
+                                            <input type="text"
+                                                   id="loginEmail"
+                                                   wire:model="loginEmail"
+                                                   class="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                                                   required>
+                                        </div>
+                                        @error('loginEmail') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
 
                                     <div>
-                                        <label for="loginPassword" class="block text-sm font-medium text-gray-700">{{ __('import.password') }}</label>
-                                        <input type="password"
-                                               id="loginPassword"
-                                               wire:model="loginPassword"
-                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                               required>
-                                        @error('loginPassword') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                        <label for="loginPassword" class="block text-sm/6 font-semibold text-gray-900">{{ __('import.password') }}</label>
+                                        <div class="mt-2.5">
+                                            <input type="password"
+                                                   id="loginPassword"
+                                                   wire:model="loginPassword"
+                                                   class="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                                                   required>
+                                        </div>
+                                        @error('loginPassword') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
 
-                                    <div class="flex items-center">
-                                        <input type="checkbox"
-                                               id="remember"
-                                               wire:model="remember"
-                                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                        <label for="remember" class="ml-2 block text-sm text-gray-900">{{ __('import.remember_me') }}</label>
+                                    <div class="flex gap-x-4">
+                                        <div class="flex h-6 items-center">
+                                            <input type="checkbox"
+                                                   id="remember"
+                                                   wire:model="remember"
+                                                   class="size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600">
+                                        </div>
+                                        <label for="remember" class="text-sm/6 text-gray-600">
+                                            {{ __('import.remember_me') }}
+                                        </label>
                                     </div>
+                                </div>
 
+                                <div class="mt-8">
                                     <button type="submit"
-                                            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
-                                        {{ __('import.login') }}
+                                            class="block w-full rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            wire:loading.attr="disabled">
+                                        <span wire:loading.remove wire:target="login">{{ __('import.login') }}</span>
+                                        <span wire:loading wire:target="login" class="flex items-center justify-center gap-2">
+                                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            {{ __('import.logging_in') }}
+                                        </span>
                                     </button>
                                 </div>
                             </form>
@@ -443,63 +473,83 @@
                         {{-- Register Form --}}
                         @if ($activeAuthTab === 'register')
                             <form wire:submit="register">
-                                <div class="space-y-4">
+                                <div class="grid grid-cols-1 gap-y-6">
                                     <div>
-                                        <label for="registerName" class="block text-sm font-medium text-gray-700">{{ __('import.name') }}</label>
-                                        <input type="text"
-                                               id="registerName"
-                                               wire:model="registerName"
-                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                               required>
-                                        @error('registerName') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                        <label for="registerName" class="block text-sm/6 font-semibold text-gray-900">{{ __('import.name') }}</label>
+                                        <div class="mt-2.5">
+                                            <input type="text"
+                                                   id="registerName"
+                                                   wire:model="registerName"
+                                                   class="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                                                   required>
+                                        </div>
+                                        @error('registerName') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
 
                                     <div>
-                                        <label for="registerEmail" class="block text-sm font-medium text-gray-700">{{ __('import.email') }}</label>
-                                        <input type="email"
-                                               id="registerEmail"
-                                               wire:model="registerEmail"
-                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                               required>
-                                        @error('registerEmail') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                    </div>
-
-                                    <x-sms-verification
-                                        phone-model="registerPhone"
-                                        code-model="verificationCode"
-                                        :code-sent="$codeSent"
-                                        :code-verified="$codeVerified"
-                                        :remaining-seconds="$this->getRemainingSeconds()"
-                                    />
-
-                                    <div>
-                                        <label for="registerPassword" class="block text-sm font-medium text-gray-700">{{ __('import.password') }}</label>
-                                        <input type="password"
-                                               id="registerPassword"
-                                               wire:model="registerPassword"
-                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                               required>
-                                        @error('registerPassword') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                        <label for="registerEmail" class="block text-sm/6 font-semibold text-gray-900">{{ __('import.email') }}</label>
+                                        <div class="mt-2.5">
+                                            <input type="email"
+                                                   id="registerEmail"
+                                                   wire:model="registerEmail"
+                                                   class="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                                                   required>
+                                        </div>
+                                        @error('registerEmail') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
 
                                     <div>
-                                        <label for="registerPasswordConfirmation" class="block text-sm font-medium text-gray-700">{{ __('import.confirm_password') }}</label>
-                                        <input type="password"
-                                               id="registerPasswordConfirmation"
-                                               wire:model="registerPasswordConfirmation"
-                                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                               required>
+                                        <x-sms-verification
+                                            phone-model="registerPhone"
+                                            code-model="verificationCode"
+                                            :code-sent="$codeSent"
+                                            :code-verified="$codeVerified"
+                                            :remaining-seconds="$this->getRemainingSeconds()"
+                                        />
                                     </div>
 
+                                    <div>
+                                        <label for="registerPassword" class="block text-sm/6 font-semibold text-gray-900">{{ __('import.password') }}</label>
+                                        <div class="mt-2.5">
+                                            <input type="password"
+                                                   id="registerPassword"
+                                                   wire:model="registerPassword"
+                                                   class="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                                                   required>
+                                        </div>
+                                        @error('registerPassword') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+
+                                    <div>
+                                        <label for="registerPasswordConfirmation" class="block text-sm/6 font-semibold text-gray-900">{{ __('import.confirm_password') }}</label>
+                                        <div class="mt-2.5">
+                                            <input type="password"
+                                                   id="registerPasswordConfirmation"
+                                                   wire:model="registerPasswordConfirmation"
+                                                   class="block w-full rounded-md bg-white px-3.5 py-2 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600"
+                                                   required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-8">
                                     <button type="submit"
-                                            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer">
-                                        {{ __('import.register') }}
+                                            class="block w-full rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            wire:loading.attr="disabled">
+                                        <span wire:loading.remove wire:target="register">{{ __('import.register') }}</span>
+                                        <span wire:loading wire:target="register" class="flex items-center justify-center gap-2">
+                                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            {{ __('import.registering') }}
+                                        </span>
                                     </button>
                                 </div>
                             </form>
                         @endif
 
-                        <p class="mt-4 text-xs text-center text-gray-500">
+                        <p class="mt-6 text-xs text-center text-gray-500">
                             {{ __('import.file_preserved') }}
                         </p>
                     </div>

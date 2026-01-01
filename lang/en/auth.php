@@ -19,7 +19,9 @@ return [
 
     // Custom translations
     'login' => 'Login',
+    'login_description' => 'Sign in to your account to continue',
     'register' => 'Register',
+    'register_description' => 'Create a new account to get started',
     'logout' => 'Logout',
     'email_or_phone' => 'Email or Phone Number',
     'email_or_phone_placeholder' => 'email@example.com or +7 777 123 4567',

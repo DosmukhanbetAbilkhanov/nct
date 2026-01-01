@@ -36,8 +36,12 @@ return [
     'updates_every_5s' => 'Processing... Updates every 5 seconds',
 
     // Auth modal
+    'authentication_required' => 'Authentication Required',
+    'auth_description' => 'Please sign in or create an account to continue with your import',
     'login' => 'Login',
+    'logging_in' => 'Logging in...',
     'register' => 'Register',
+    'registering' => 'Registering...',
     'email_or_phone' => 'Email or Phone Number',
     'password' => 'Password',
     'remember_me' => 'Remember me',
