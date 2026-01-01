@@ -183,9 +183,9 @@ test('job releases back to queue on rate limit exception', function () {
     $job = new FetchProductFromNationalCatalog($batchItem);
     $job->handle($mockService);
 
-    // Verify batch item status is still processing (not failed)
+    // Verify batch item status is set back to pending (will retry)
     $batchItem->refresh();
-    expect($batchItem->status)->toBe('processing');
+    expect($batchItem->status)->toBe('pending');
 
     // Verify batch counters were NOT incremented (job will retry)
     $this->batch->refresh();
@@ -249,8 +249,8 @@ test('job has correct queue configuration', function () {
 
     $job = new FetchProductFromNationalCatalog($batchItem);
 
-    expect($job->tries)->toBe(3)
-        ->and($job->backoff)->toBe([60, 300, 900]);
+    expect($job->tries)->toBe(5)
+        ->and($job->backoff)->toBe([30, 60, 120, 300, 600]);
 });
 
 test('job has rate limited middleware', function () {

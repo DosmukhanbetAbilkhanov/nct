@@ -47,7 +47,7 @@ it('redirects to import page after login when accessing download route', functio
 
     // Should be redirected to the import page instead of the download URL
     // This prevents the user from ending up on a blank download page
-    $page->assertSee('GTIN Import')
+    $page->assertSee('NTIN Import')
         ->assertSee($this->user->name)
         ->assertNoJavascriptErrors();
 })->group('browser', 'auth');
@@ -65,7 +65,7 @@ it('redirects to home page after login when no intended URL', function () {
     $page->wait(2);
 
     // Should redirect to home page (gtin-import)
-    $page->assertSee('GTIN Import')
+    $page->assertSee('NTIN Import')
         ->assertSee($this->user->name)
         ->assertNoJavascriptErrors();
 })->group('browser', 'auth');

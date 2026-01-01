@@ -18,7 +18,7 @@ beforeEach(function () {
 test('component renders successfully', function () {
     Livewire::test(GtinImport::class)
         ->assertStatus(200)
-        ->assertSee('GTIN Import')
+        ->assertSee('NTIN Import')
         ->assertSee('Upload an Excel or CSV file');
 });
 
