@@ -19,7 +19,9 @@ return [
 
     // Custom translations
     'login' => 'Войти',
+    'login_description' => 'Войдите в свой аккаунт, чтобы продолжить',
     'register' => 'Регистрация',
+    'register_description' => 'Создайте новый аккаунт, чтобы начать',
     'logout' => 'Выйти',
     'email_or_phone' => 'Email или номер телефона',
     'email_or_phone_placeholder' => 'email@example.com или +7 777 123 4567',

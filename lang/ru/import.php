@@ -36,8 +36,12 @@ return [
     'updates_every_5s' => 'Обработка... Обновления каждые 5 секунд',
 
     // Auth modal
+    'authentication_required' => 'Требуется аутентификация',
+    'auth_description' => 'Пожалуйста, войдите или создайте аккаунт, чтобы продолжить импорт',
     'login' => 'Войти',
+    'logging_in' => 'Вход...',
     'register' => 'Регистрация',
+    'registering' => 'Регистрация...',
     'email_or_phone' => 'Email или номер телефона',
     'password' => 'Пароль',
     'remember_me' => 'Запомнить меня',

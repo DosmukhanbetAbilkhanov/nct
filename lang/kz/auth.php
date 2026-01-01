@@ -19,7 +19,9 @@ return [
 
     // Custom translations
     'login' => 'Кіру',
+    'login_description' => 'Жалғастыру үшін аккаунтыңызға кіріңіз',
     'register' => 'Тіркелу',
+    'register_description' => 'Бастау үшін жаңа аккаунт жасаңыз',
     'logout' => 'Шығу',
     'email_or_phone' => 'Email немесе телефон нөмірі',
     'email_or_phone_placeholder' => 'email@example.com немесе +7 777 123 4567',

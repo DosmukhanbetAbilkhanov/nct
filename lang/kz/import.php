@@ -36,8 +36,12 @@ return [
     'updates_every_5s' => 'Өңделуде... Әр 5 секунд сайын жаңартылады',
 
     // Auth modal
+    'authentication_required' => 'Аутентификация қажет',
+    'auth_description' => 'Импортты жалғастыру үшін жүйеге кіріңіз немесе аккаунт жасаңыз',
     'login' => 'Кіру',
+    'logging_in' => 'Кіру...',
     'register' => 'Тіркелу',
+    'registering' => 'Тіркелу...',
     'email_or_phone' => 'Email немесе телефон нөмірі',
     'password' => 'Құпия сөз',
     'remember_me' => 'Мені есте сақта',
