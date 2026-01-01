@@ -7,11 +7,12 @@
     {{-- Header --}}
     <div class="mx-auto max-w-2xl text-center">
         <h2 class="text-2xl font-semibold tracking-tight text-balance text-gray-900 sm:text-3xl">{{ __('auth.login') }}</h2>
-        <p class="mt-2 text-lg/8 text-gray-600">{{ __('auth.login_description') }}</p>
+        <p class="mt-2 text-sm text-gray-600">{{ __('auth.login_description') }}</p>
     </div>
 
+
     {{-- Login Form --}}
-    <form wire:submit="authenticate" class="mx-auto mt-4 max-w-xl sm:mt-20">
+    <form wire:submit="authenticate" class="mx-auto mt-4 max-w-xl sm:mt-12">
         <div class="grid grid-cols-1 gap-x-8 gap-y-6">
             {{-- Email or Phone --}}
             <div>

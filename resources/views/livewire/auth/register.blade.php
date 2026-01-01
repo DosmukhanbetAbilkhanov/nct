@@ -7,8 +7,14 @@
     {{-- Header --}}
     <div class="mx-auto max-w-2xl text-center">
         <h2 class="text-2xl font-semibold tracking-tight text-balance text-gray-900 sm:text-3xl">{{ __('auth.register') }}</h2>
-        <p class="mt-2 text-lg/8 text-gray-600">{{ __('auth.register_description') }}</p>
+        <p class="mt-2 text-sm text-gray-600">{{ __('auth.register_description') }}</p>
     </div>
+
+    {{-- <div class="px-6 pt-8 pb-4 text-center">
+        <h3 class="text-2xl font-semibold text-gray-900">{{ __('import.authentication_required') }}</h3>
+        <p class="mt-2 text-sm text-gray-600">{{ __('import.auth_description') }}</p>
+    </div> --}}
+
 
     {{-- Success/Error Messages --}}
     @if (session('success'))
@@ -46,7 +52,7 @@
     @endif
 
     {{-- Registration Form --}}
-    <form wire:submit="register" class="mx-auto mt-16 max-w-xl sm:mt-20">
+    <form wire:submit="register" class="mx-auto mt-8 max-w-xl sm:mt-12">
         <div class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
             {{-- Name --}}
             <div class="sm:col-span-2">
