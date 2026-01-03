@@ -63,7 +63,7 @@ class ImportBatch extends Model
     }
 
     /**
-     * Get only failed items.
+     * Get items not found in catalog.
      */
     public function failedItems(): HasMany
     {
@@ -166,9 +166,9 @@ class ImportBatch extends Model
             ]);
         }
 
-        // Generate failed GTINs file
+        // Generate not-in-catalog GTINs file
         if ($this->failed_count > 0) {
-            $failedFilename = "failed-gtins-batch-{$this->id}.xlsx";
+            $failedFilename = "not-in-catalog-gtins-batch-{$this->id}.xlsx";
             $failedPath = "{$directory}/{$failedFilename}";
 
             \Maatwebsite\Excel\Facades\Excel::store(
@@ -179,7 +179,7 @@ class ImportBatch extends Model
 
             $this->update(['failed_file_path' => $failedPath]);
 
-            \Illuminate\Support\Facades\Log::info('❌ Generated failed GTINs export', [
+            \Illuminate\Support\Facades\Log::info('📋 Generated not-in-catalog GTINs export', [
                 'batch_id' => $this->id,
                 'file_path' => $failedPath,
                 'failed_count' => $this->failed_count,
@@ -203,7 +203,7 @@ class ImportBatch extends Model
     }
 
     /**
-     * Get download URL for failed GTINs file.
+     * Get download URL for not-in-catalog GTINs file.
      */
     public function getFailedFileUrlAttribute(): ?string
     {

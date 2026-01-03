@@ -229,7 +229,7 @@
 
                 <div class="bg-red-50 rounded-lg p-4">
                     <div class="text-2xl font-bold text-red-700">{{ $currentBatch->failed_count }}</div>
-                    <div class="text-sm text-red-600">{{ __('import.failed') }}</div>
+                    <div class="text-sm text-red-600">{{ __('import.not_in_catalog') }}</div>
                 </div>
             </div>
 
@@ -333,14 +333,14 @@
                 </div>
             @endif
 
-            {{-- Failed Items Table --}}
+            {{-- Not in Catalog Items Table --}}
             @if ($currentBatch->failed_count > 0)
                 <div x-data="{ expanded: false }" class="border border-red-200 rounded-lg overflow-hidden">
                     <button @click="expanded = !expanded"
                             type="button"
                             class="w-full bg-red-50 px-4 py-3 flex items-center justify-between hover:bg-red-100 transition-colors cursor-pointer">
                         <span class="font-medium text-red-900">
-                            {{ __('import.failed_items', ['count' => $currentBatch->failed_count]) }}
+                            {{ __('import.not_in_catalog_items', ['count' => $currentBatch->failed_count]) }}
                         </span>
                         <svg :class="expanded ? 'rotate-180' : ''"
                              class="w-5 h-5 text-red-600 transition-transform"
@@ -397,7 +397,7 @@
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
-                                    {{ __('import.download_failed_gtins', ['count' => $currentBatch->failed_count]) }}
+                                    {{ __('import.download_not_in_catalog_gtins', ['count' => $currentBatch->failed_count]) }}
                                 </a>
                             @endif
                         </div>

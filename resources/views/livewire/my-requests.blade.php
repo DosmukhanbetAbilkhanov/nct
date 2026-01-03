@@ -36,7 +36,7 @@
                                 {{ __('requests.success') }}
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                {{ __('requests.failed') }}
+                                {{ __('requests.not_in_catalog') }}
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 {{ __('requests.date') }}
@@ -108,12 +108,12 @@
 
                                         @if($batch->failed_file_path && $batch->failed_count > 0)
                                             <a href="{{ $batch->failed_file_url }}"
-                                               class="inline-flex items-center px-3 py-1.5 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 text-xs font-medium rounded hover:bg-red-50 dark:hover:bg-red-900 transition-colors"
-                                               title="{{ __('requests.download_failed_gtins') }}">
+                                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-medium rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                               title="{{ __('requests.download_not_in_catalog_gtins') }}">
                                                 <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
                                                 </svg>
-                                                {{ __('requests.failed') }}
+                                                {{ __('requests.not_in_catalog') }}
                                             </a>
                                         @endif
 

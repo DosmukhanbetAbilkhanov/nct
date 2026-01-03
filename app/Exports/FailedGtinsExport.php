@@ -24,13 +24,13 @@ class FailedGtinsExport implements FromCollection, WithHeadings, WithMapping
     }
 
     /**
-     * Map each failed item to Excel row.
+     * Map each not-in-catalog item to Excel row.
      */
     public function map($item): array
     {
         return [
             $item->gtin,
-            $item->error_message ?? 'Unknown error',
+            $item->error_message ?? 'Not found in National Catalog',
             $item->created_at?->format('Y-m-d H:i:s'),
         ];
     }
@@ -42,8 +42,8 @@ class FailedGtinsExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             'GTIN',
-            'Error Message',
-            'Failed At',
+            'Status',
+            'Processed At',
         ];
     }
 }
