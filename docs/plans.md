@@ -40,15 +40,33 @@ IMPLEMENTATION PROGRESS (Last updated: 2026-01-04)
   - Public webhook: /api/payments/webhook
 - ✅ Ran Laravel Pint for code formatting
 
-🚧 PHASE 4: JOBS, EVENTS & LISTENERS - PENDING
-⏳ PHASE 5: UI INTEGRATION (LIVEWIRE) - PENDING
+✅ PHASE 4: JOBS, EVENTS & LISTENERS - COMPLETED
+- ✅ Created ProcessPaidBatch job (app/Jobs/ProcessPaidBatch.php)
+  - Implements ShouldQueue with 3 tries and backoff [60, 300, 600]
+  - Processes batch after successful payment
+  - Fires BatchProcessingComplete event
+- ✅ Created ExpireUnpaidOrders job (app/Jobs/ExpireUnpaidOrders.php)
+  - Calls PaymentService::cancelExpiredOrders()
+  - Scheduled to run every 5 minutes
+- ✅ Created events (app/Events/)
+  - PaymentSuccessful (Order $order, Payment $payment)
+  - PaymentFailed (Payment $payment, string $reason)
+  - BatchProcessingComplete (ImportBatch $batch)
+- ✅ Created listeners (app/Listeners/)
+  - SendPaymentSuccessNotification - sends PaymentSuccessful notification
+  - SendPaymentFailedNotification - sends PaymentFailed notification
+  - SendBatchCompleteNotification - sends BatchProcessingComplete notification
+- ✅ Updated routes/console.php with ExpireUnpaidOrders scheduled job
+- ✅ Ran Laravel Pint for code formatting
+
+🚧 PHASE 5: UI INTEGRATION (LIVEWIRE) - PENDING
 ⏳ PHASE 6: EMAIL & NOTIFICATIONS - PENDING
 ⏳ PHASE 7: LOCALIZATION - PENDING
 ⏳ PHASE 8: RECEIPT GENERATION - PENDING
 ⏳ PHASE 9: CONFIGURATION - PENDING
 ⏳ PHASE 10: TESTING - PENDING
 
-RESUME POINT: Continue with Phase 4 - Jobs, Events & Listeners (ProcessPaidBatch, ExpireUnpaidOrders, Events & Listeners)
+RESUME POINT: Continue with Phase 5 - UI Integration (Livewire components: GtinImport, BatchDetails, MyRequests)
 
 ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
