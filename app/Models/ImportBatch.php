@@ -16,9 +16,14 @@ class ImportBatch extends Model
      */
     protected $fillable = [
         'user_id',
+        'order_id',
         'session_id',
         'filename',
+        'file_path',
         'total_gtins',
+        'requires_payment',
+        'payment_completed',
+        'payment_status',
         'processed_count',
         'success_count',
         'failed_count',
@@ -39,6 +44,8 @@ class ImportBatch extends Model
             'processed_count' => 'integer',
             'success_count' => 'integer',
             'failed_count' => 'integer',
+            'requires_payment' => 'boolean',
+            'payment_completed' => 'boolean',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'created_at' => 'datetime',
@@ -52,6 +59,14 @@ class ImportBatch extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the order for this batch.
+     */
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 
     /**
@@ -214,6 +229,40 @@ class ImportBatch extends Model
         return route('import.download', [
             'batch' => $this->id,
             'type' => 'failed',
+        ]);
+    }
+
+    /**
+     * Check if batch requires payment.
+     */
+    public function requiresPayment(): bool
+    {
+        return $this->requires_payment;
+    }
+
+    /**
+     * Check if payment has been completed.
+     */
+    public function isPaymentCompleted(): bool
+    {
+        return $this->payment_completed;
+    }
+
+    /**
+     * Check if batch can be processed.
+     */
+    public function canBeProcessed(): bool
+    {
+        return $this->payment_completed || ! $this->requires_payment;
+    }
+
+    /**
+     * Mark payment as completed.
+     */
+    public function markPaymentAsCompleted(): void
+    {
+        $this->update([
+            'payment_completed' => true,
         ]);
     }
 }

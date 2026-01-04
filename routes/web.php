@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\WebhookController;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\CompanySetup;
@@ -25,6 +27,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/company/setup', CompanySetup::class)->name('company.setup');
     Route::get('/my-requests', MyRequests::class)->name('my-requests');
 
+    // Payment routes
+    Route::post('/payments/initiate', [PaymentController::class, 'initiatePayment'])
+        ->name('payments.initiate');
+    Route::get('/payments/return', [PaymentController::class, 'handleReturn'])
+        ->name('payments.return');
+    Route::post('/payments/{order}/retry', [PaymentController::class, 'handleRetry'])
+        ->name('payments.retry');
+    Route::get('/orders/{order}/receipt', [PaymentController::class, 'downloadReceipt'])
+        ->name('orders.receipt');
+
     // Download requires authentication
     Route::get('/import/download/{batch}/{type}', function (ImportBatch $batch, string $type) {
         // Only allow download if batch belongs to user OR batch has no user (guest batch)
@@ -43,3 +55,7 @@ Route::middleware('auth')->group(function () {
         return Storage::download($filePath, $filename);
     })->name('import.download');
 });
+
+// Public webhook endpoint (no authentication)
+Route::post('/api/payments/webhook', [WebhookController::class, 'asiapayWebhook'])
+    ->name('payments.webhook');
